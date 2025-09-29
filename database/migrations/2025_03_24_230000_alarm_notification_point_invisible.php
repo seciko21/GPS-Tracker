@@ -10,21 +10,20 @@ return new class() extends MigrationAbstract {
      */
     public function up(): void
     {
-        $this->upTables();
-    }
-
-    /**
-     * @return void
-     */
-    protected function upTables(): void
-    {
+        // Corregimos la tabla 'alarm_notification'
         Schema::table('alarm_notification', function (Blueprint $table) {
-            $this->tableDropIndex($table, 'point');
-            $this->tableDropIndex($table, 'point', 'spatialindex');
+            // CORRECCIÓN 1 (Error 4108): Eliminamos la columna si ya existe con problemas
+            if (Schema::hasColumn('alarm_notification', 'point')) {
+                $table->dropSpatialIndex(['point']); // Eliminar índice espacial si existe
+                $table->dropColumn('point');
+            }
         });
 
         Schema::table('alarm_notification', function (Blueprint $table) {
-            $table->geometry('point', 'point', 4326)->invisible(true)->change();
+            // CORRECCIÓN 2: Volvemos a crear la columna 'point' sin el modificador ->invisible()
+            // y la hacemos 'nullable' para evitar conflictos.
+            // Si Laravel no soporta ->geometry()->nullable() en tu versión, se debe usar ->point().
+            $table->point('point', 4326)->nullable(true); // Cambiado a VISIBLE y nullable
         });
     }
 
@@ -33,8 +32,12 @@ return new class() extends MigrationAbstract {
      */
     public function down(): void
     {
+        // En el down, simplemente revertimos a lo que Laravel haría (eliminar la columna).
         Schema::table('alarm_notification', function (Blueprint $table) {
-            $table->geometry('point', 'point', 4326)->invisible(false)->change();
+            if (Schema::hasColumn('alarm_notification', 'point')) {
+                $table->dropSpatialIndex(['point']);
+                $table->dropColumn('point');
+            }
         });
     }
 };

@@ -3,7 +3,8 @@ FROM php:8.3-fpm
 
 # --- INSTALACIÓN DE DEPENDENCIAS Y EXTENSIONES ---
 
-# Se combina la instalación de paquetes, dependencias de compilación, extensiones PHP y limpieza.
+# 1. Se instala el cliente MariaDB (para el comando 'mysql')
+# 2. Se instalan extensiones de PHP (incluyendo Redis)
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         git \
@@ -18,10 +19,10 @@ RUN apt-get update \
         libzip-dev \
         autoconf \
         pkg-config \
+        mariadb-client \
     \
     && docker-php-ext-install -j$(nproc) bcmath bz2 intl mbstring opcache pdo_mysql sockets zip \
     \
-    # Corrección de Redis
     && pecl install redis \
     && docker-php-ext-enable redis \
     \
@@ -43,15 +44,20 @@ COPY . /var/www/html
 # Ajustar el UID del usuario www-data a 1000
 RUN usermod -u 1000 www-data
 
+# CORRECCIÓN DEFINITIVA DE SSL/TLS (Error 2026 y 'unknown variable')
+# Creamos el archivo .my.cnf para el usuario www-data con 'skip-ssl'
+RUN echo "[mysql]\nskip-ssl\n[mysqldump]\nskip-ssl" > /var/www/.my.cnf 
+
 # Copiar configuraciones
 COPY ./docker/php.ini /usr/local/etc/php/
 COPY ./docker/crontab /etc/cron.d/crontab
 
-# CORRECCIÓN DE CRONTAB: Añade salto de línea y carga el crontab
+# CORRECCIÓN DE CRONTAB y PERMISOS
 RUN chmod 0644 /etc/cron.d/crontab \
     && echo "" >> /etc/cron.d/crontab \
     && crontab /etc/cron.d/crontab \
-    && chown -R www-data:www-data /var/www/html
+    && chown -R www-data:www-data /var/www/html \
+    && chown www-data:www-data /var/www/.my.cnf
 
 # Permisos de escritura para directorios de Laravel y normalización
 RUN chmod -R 775 /var/www/html/storage \
@@ -64,13 +70,7 @@ COPY ./docker/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # --- SEGURIDAD Y EJECUCIÓN ---
-
-# Ejecutar como usuario no-root por defecto
 USER www-data
-
-# Exponer puerto
 EXPOSE 9000
-
-# Usar el script de entrada como ENTRYPOINT principal
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
 CMD ["php-fpm", "-F"]
