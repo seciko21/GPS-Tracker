@@ -1,49 +1,34 @@
-<?php declare(strict_types=1);
+<?php
 
+use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
-use App\Domains\CoreApp\Migration\MigrationAbstract;
 
-return new class() extends MigrationAbstract {
+class TripDistanceTime extends Migration
+{
     /**
+     * Run the migrations.
+     *
      * @return void
      */
-    public function up(): void
+    public function up()
     {
-        if ($this->upMigrated()) {
-            return;
-        }
-
-        $this->tables();
-    }
-
-    /**
-     * @return bool
-     */
-    protected function upMigrated(): bool
-    {
-        return Schema::hasColumn('trip', 'distance');
-    }
-
-    /**
-     * @return void
-     */
-    protected function tables(): void
-    {
-        Schema::table('trip', function (Blueprint $table) {
+        Schema::table('trips', function (Blueprint $table) {
             $table->unsignedInteger('distance')->default(0);
             $table->unsignedInteger('time')->default(0);
         });
     }
 
     /**
+     * Reverse the migrations.
+     *
      * @return void
      */
-    public function down(): void
+    public function down()
     {
-        Schema::table('trip', function (Blueprint $table) {
+        Schema::table('trips', function (Blueprint $table) {
             $table->dropColumn('distance');
             $table->dropColumn('time');
         });
     }
-};
+}

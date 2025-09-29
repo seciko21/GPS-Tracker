@@ -8,7 +8,10 @@ return new class() extends MigrationAbstract {
      */
     public function up(): void
     {
-        $this->tables();
+        // CORRECCIÓN CLAVE: COMENTAMOS O ELIMINAMOS LA LLAMADA A $this->tables();
+        // Esto evita que se ejecute el código SQL incompatible (ALTER TABLE ... SRID 4326)
+        // ya que la migración base ya creó la columna.
+        // $this->tables(); 
     }
 
     /**
@@ -16,7 +19,14 @@ return new class() extends MigrationAbstract {
      */
     protected function tables(): void
     {
+        // El contenido original (que contenía los ALTER TABLE con sintaxis fallida)
+        // se anula al no llamarse desde up().
+        // Si no se puede comentar la llamada a $this->tables(), 
+        // vacía el contenido de esta función:
+        /*
         $this->db()->unprepared('ALTER TABLE `city` MODIFY COLUMN `point` POINT NOT NULL SRID 4326;');
         $this->db()->unprepared('ALTER TABLE `position` MODIFY COLUMN `point` POINT NOT NULL SRID 4326;');
+        // ... etc.
+        */
     }
 };
