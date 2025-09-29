@@ -1,0 +1,56 @@
+version: '3.7'
+
+services:
+  app:
+    build:
+      context: ./docker/app
+      dockerfile: Dockerfile
+    image: eusonlito/gps-tracker
+    restart: always
+    volumes:
+      - .:/var/www/html
+      - ./docker/app/php-fpm.d:/usr/local/etc/php-fpm.d
+    environment:
+      - PHP_IDE_CONFIG=serverName=docker
+    networks:
+      - backend
+
+  web:
+    build:
+      context: ./docker/web
+      dockerfile: Dockerfile
+    image: eusonlito/gps-tracker-web
+    restart: always
+    ports:
+      - '80:80'
+    volumes:
+      - .:/var/www/html
+      - ./docker/web/conf:/etc/nginx/conf.d
+      - ./docker/app/php-fpm.d:/var/www/html/php-fpm.d
+    networks:
+      - backend
+
+  db:
+    image: mysql:8.0
+    restart: always
+    ports:
+      - "3306:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DATABASE=${DB_DATABASE}
+    networks:
+      - backend
+
+  redis:
+    image: redis:6.2-alpine
+    restart: always
+    networks:
+      - backend
+
+networks:
+  backend:
+
+volumes:
+  dbdata:
