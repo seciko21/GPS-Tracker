@@ -3,19 +3,16 @@ services:
   # 1. SERVICIO DE APLICACIÓN (PHP-FPM)
   # ----------------------------------------
   app:
-    # Usa el Dockerfile corregido en la carpeta ./docker
+    # Usará el Dockerfile corregido en ./docker/Dockerfile
     build:
       context: .
       dockerfile: ./docker/Dockerfile
     container_name: gps_tracker_app
     restart: unless-stopped
-    # Expone el puerto 9000 internamente para Nginx
     expose:
       - 9000
     volumes:
-      # Monta el código fuente
       - .:/var/www/html
-      # Volúmenes persistentes para datos generados por la aplicación
       - app_storage_data:/var/www/html/storage
       - app_cache_data:/var/www/html/bootstrap/cache
     depends_on:
@@ -25,20 +22,21 @@ services:
       - app-network
 
   # ----------------------------------------
-  # 2. SERVIDOR WEB (NGINX)
+  # 2. SERVIDOR WEB (NGINX) - CORRECCIÓN DE MONTAJE Y COMANDO
   # ----------------------------------------
   web:
     image: nginx:stable-alpine
     container_name: gps_tracker_web
     restart: unless-stopped
-    # Mapea el puerto 80 del host
     ports:
-      - "80:80"
+      - "80:80" # Acceso web
     volumes:
-      # Monta el código (solo lectura por seguridad)
       - .:/var/www/html:ro
-      # Monta el archivo de configuración de Nginx (debe estar en ./docker/nginx.conf)
+      # CORRECCIÓN DEFINITIVA: Montamos el archivo de configuración sobre el archivo
+      # por defecto de Nginx (/etc/nginx/conf.d/default.conf).
       - ./docker/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    # IMPORTANTE: Eliminamos el 'command' anterior. Nginx ahora usará la configuración 
+    # montada en /etc/nginx/conf.d/default.conf y se iniciará normalmente.
     depends_on:
       - app
     networks:
@@ -51,11 +49,9 @@ services:
     image: mariadb:10.11
     container_name: gps_tracker_db
     restart: unless-stopped
-    # Mapea el puerto 3306 para acceso externo opcional
     ports:
       - "3306:3306"
     environment:
-      # Variables de entorno para la base de datos (se recomienda usar un archivo .env)
       MYSQL_DATABASE: ${DB_DATABASE:-gps_tracker}
       MYSQL_USER: ${DB_USERNAME:-user}
       MYSQL_PASSWORD: ${DB_PASSWORD:-secret}
@@ -63,7 +59,6 @@ services:
       MARIADB_CHARSET: utf8mb4
       MARIADB_COLLATION: utf8mb4_unicode_ci
     volumes:
-      # Volumen persistente para los datos de la base de datos
       - db_data:/var/lib/mysql
     networks:
       - app-network
@@ -89,7 +84,7 @@ volumes:
   db_data:
 
 # ----------------------------------------
-# REDES
+# DEFINICIÓN DE REDES
 # ----------------------------------------
 networks:
   app-network:

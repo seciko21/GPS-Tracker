@@ -1,4 +1,2 @@
-*# M D H dom mon dow user command
-* * * * * www-data php /var/www/html/artisan schedule:run >> /var/log/cron.log 2>&1
-
-<-- Asegúrate de que haya una línea vacía aquí
+* * * * * www-data php /var/www/html/artisan schedule:run >> /dev/null 2>&1
+# Linea vacia al final
